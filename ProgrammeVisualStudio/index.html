@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supervision S7-300</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .header {
+      background: #007bff;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .username {
+      font-weight: bold;
+    }
+    .logout-btn {
+      padding: 8px 16px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .logout-btn:hover {
+      background: #c82333;
+    }
+    .container {
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .control {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    input[type="number"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button.on {
+      background: #28a745;
+    }
+    button.off {
+      background: #dc3545;
+    }
+    button.on:hover {
+      background: #218838;
+    }
+    button.off:hover {
+      background: #c82333;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Supervision S7-300</h1>
+    <div class="user-info">
+      <span class="username" id="username">--</span>
+      <button class="logout-btn" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="control">
+      <label>Bouton1 (Bool - DB1.DBX0.0)</label>
+      <button class="on" onclick="setBouton(true)">ON</button>
+      <button class="off" onclick="setBouton(false)">OFF</button>
+      <div class="status" id="statusBouton">État : --</div>
+    </div>
+
+    <div class="control">
+      <label>Nombre1 (Int - DB1.DBW2)</label>
+      <input type="number" id="nombre" placeholder="Entrez une valeur">
+      <button onclick="setNombre()">Envoyer</button>
+      <div class="status" id="statusNombre">Valeur : --</div>
+    </div>
+  </div>
+
+  <script>
+    // Vérifier l'authentification au démarrage
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/user');
+        if (!res.ok) {
+          window.location.href = '/login';
+          return;
+        }
+        const user = await res.json();
+        document.getElementById('username').textContent = user.username;
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Fonction de déconnexion
+    async function logout() {
+      await fetch('/api/logout');
+      window.location.href = '/login';
+    }
+
+    // Fonction pour lire les variables
+    function readVariables() {
+      fetch('/api/read/Bouton1')
+        .then(res => {
+          if (res.status === 401) window.location.href = '/login';
+          return res.json();
+        })
+        .then(data => {
+          if(data.error) throw data.error;
+          const etat = data.value ? 'ON' : 'OFF';
+          document.getElementById('statusBouton').innerText = 'État : ' + etat;
+        })
+        .catch(err => console.error('Erreur lecture Bouton1:', err));
+
+      fetch('/api/read/Nombre1')
+        .then(res => {
+          if (res.status === 401) window.location.href = '/login';
+          return res.json();
+        })
+        .then(data => {
+          if(data.error) throw data.error;
+          document.getElementById('statusNombre').innerText = 'Valeur : ' + data.value;
+        })
+        .catch(err => console.error('Erreur lecture Nombre1:', err));
+    }
+
+    // Fonction pour allumer/éteindre Bouton1
+    function setBouton(value) {
+      fetch('/api/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variable: 'Bouton1', value: value })
+      })
+      .then(res => {
+        if (res.status === 401) window.location.href = '/login';
+        return res.json();
+      })
+      .then(data => {
+        if(data.error) throw data.error;
+        console.log('Succès update Bouton1');
+        readVariables();
+      })
+      .catch(err => alert('Erreur automate : ' + err));
+    }
+
+    // Fonction pour envoyer un nombre
+    function setNombre() {
+      const value = parseInt(document.getElementById('nombre').value);
+      if (isNaN(value)) {
+        alert('Entrez un nombre valide');
+        return;
+      }
+      fetch('/api/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variable: 'Nombre1', value: value })
+      })
+      .then(res => {
+        if (res.status === 401) window.location.href = '/login';
+        return res.json();
+      })
+      .then(data => {
+        if(data.error) throw data.error;
+        console.log('Succès update Nombre1');
+        readVariables();
+      })
+      .catch(err => alert('Erreur automate : ' + err));
+    }
+
+    // Vérifier l'auth au démarrage
+    checkAuth();
+
+    // Lire les valeurs au démarrage
+    readVariables();
+
+    // Rafraîchir toutes les 2 secondes
+    setInterval(readVariables, 2000);
+  </script>
+</body>
+</html>

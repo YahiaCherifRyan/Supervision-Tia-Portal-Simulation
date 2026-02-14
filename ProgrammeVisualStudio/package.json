@@ -1,0 +1,14 @@
+{
+  "name": "supervision-s7",
+  "version": "1.0.0",
+  "description": "Supervision S7-300 via Node.js",
+  "main": "serveur.js",
+  "scripts": {
+    "start": "node serveur.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-session": "^1.19.0",
+    "node-snap7": "^1.0.9"
+  }
+}
