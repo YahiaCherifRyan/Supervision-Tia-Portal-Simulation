@@ -66,6 +66,17 @@ Le code est configuré pour lire et écrire sur ces adresses dans l'automate :
 | Nombre1 | `DB1.DBW2` | Valeur numérique (Entier) |
 
 ---
+## 🐛 Dépannage
+
+| Problème | Solution |
+|----------|----------|
+| Erreur de connexion PLC | Vérifiez que PLCSIM est en cours d'exécution et l'IP est correcte |
+| Accès refusé (401) | Vérifiez que vous êtes connecté avec un compte valide |
+| Variables non mises à jour | Vérifiez la connexion à l'automate et le statut du serveur |
+| Page de login ne charge pas | Vérifiez que le serveur Node.js est en cours d'exécution |
+| Identifiants incorrects | Utilisez admin/admin123 ou operateur/operateur123 |
+
+---
 
 **Auteur :** Ryan  
 **Date :** Février 2026
