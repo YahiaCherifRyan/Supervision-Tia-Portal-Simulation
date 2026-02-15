@@ -3,123 +3,109 @@ const snap7 = require('node-snap7');
 const session = require('express-session');
 const crypto = require('crypto');
 const path = require('path');
+const mysql = require('mysql2');
 
 const app = express();
 const client = new snap7.S7Client();
 
-app.use(express.json());
-app.use(express.static('.'));
+// --- 1. CONFIGURATION BDD (XAMPP) ---
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '', 
+  database: 'db_supervision_s7' // Nom de ta nouvelle base
+});
 
-// Configuration des sessions
+app.use(express.json());
+app.use(express.static(__dirname));
+
 app.use(session({
-  secret: 'supervision-s7-secret',
+  secret: 's7-secret-key-2026',
   resave: false,
   saveUninitialized: true,
-  cookie: { 
-    secure: false, 
-    maxAge: 3600000
-  }
+  cookie: { secure: false, maxAge: 3600000 }
 }));
 
-// Base de données d'utilisateurs
-const users = [
-  {
-    id: 1,
-    username: 'admin',
-    password: hashPassword('admin123'),
-    role: 'admin'
-  },
-  {
-    id: 2,
-    username: 'operateur',
-    password: hashPassword('operateur123'),
-    role: 'operateur'
-  }
-];
-
+// --- 2. OUTILS ---
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 function isAuthenticated(req, res, next) {
-  if (req.session.userId) {
-    next();
-  } else {
-    res.status(401).json({ error: 'Non authentifié' });
-  }
+  if (req.session.userId) next();
+  else res.status(401).json({ error: 'Session expirée' });
 }
 
-// ============ CONFIGURATION PLC (NETTOPLCSIM) ============
+// --- 3. CONFIGURATION AUTOMATE ---
 const plcConfig = {
-    host: '172.20.10.3',  // Ton IP Wi-Fi (ipconfig)
+    host: '192.168.1.27', 
     rack: 0,
-    slot: 2               // Slot 2 pour S7-300
+    slot: 2 
 };
 
 let plcConnected = false;
-let plcValues = {
-  Bouton1: false,
-  Nombre1: 0
-};
+let plcValues = { Bouton1: false, Nombre1: 0 };
 
-// Connexion à l'automate
 function connectPLC() {
   client.ConnectTo(plcConfig.host, plcConfig.rack, plcConfig.slot, (err) => {
     if (err) {
-      console.error('--- ERREUR CONNEXION PLC ---');
       plcConnected = false;
       setTimeout(connectPLC, 5000);
     } else {
       plcConnected = true;
-      console.log('--- CONNECTÉ À L\'AUTOMATE VIA ' + plcConfig.host + ' ---');
+      console.log('✅ Automate connecté : ' + plcConfig.host);
       startPolling();
     }
   });
 }
 
-// Lecture cyclique (Polling)
 function startPolling() {
   setInterval(() => {
     if (!plcConnected) return;
-
+    // Lecture DB1.DBX0.0 (Bouton)
     client.DBRead(1, 0, 1, (err, data) => {
       if (!err && data) plcValues.Bouton1 = (data[0] & 0x01) !== 0;
     });
-
+    // Lecture DB1.DBW2 (Nombre)
     client.DBRead(1, 2, 2, (err, data) => {
       if (!err && data) plcValues.Nombre1 = data.readInt16BE(0);
     });
   }, 500);
 }
 
-// ============ ROUTES DE NAVIGATION (FIX "Cannot GET") ============
-
+// --- 4. ROUTES NAVIGATION ---
 app.get('/', (req, res) => {
-  if (req.session.userId) {
-    res.sendFile(path.join(__dirname, 'index.html'));
-  } else {
-    res.redirect('/login');
-  }
+  if (req.session.userId) res.sendFile(path.join(__dirname, 'index.html'));
+  else res.redirect('/login');
 });
 
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// ============ ROUTES API ============
-
+// --- 5. API AUTHENTIFICATION (MYSQL) ---
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
-  
-  if (!user || user.password !== hashPassword(password)) {
-    return res.json({ success: false, message: 'Identifiants incorrects' });
-  }
+  const hash = hashPassword(password);
 
-  req.session.userId = user.id;
-  req.session.username = user.username;
-  req.session.role = user.role;
-  res.json({ success: true });
+  db.query(
+    'SELECT id, username, role FROM users WHERE username = ? AND password = ?',
+    [username, hash],
+    (err, results) => {
+      if (err || results.length === 0) {
+        return res.json({ success: false, message: 'Identifiants incorrects' });
+      }
+      const user = results[0];
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+      res.json({ success: true, role: user.role });
+    }
+  );
+});
+
+app.get('/api/user', isAuthenticated, (req, res) => {
+  res.json({ username: req.session.username, role: req.session.role });
 });
 
 app.get('/api/logout', (req, res) => {
@@ -127,20 +113,20 @@ app.get('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/user', isAuthenticated, (req, res) => {
-  res.json({ username: req.session.username, role: req.session.role });
-});
-
+// --- 6. API AUTOMATE (LECTURE/ECRITURE) ---
 app.get('/api/read/:variable', isAuthenticated, (req, res) => {
-  const { variable } = req.params;
-  res.json({ variable, value: plcValues[variable] });
+  res.json({ value: plcValues[req.params.variable] });
 });
 
 app.post('/api/write', isAuthenticated, (req, res) => {
-  const { variable, value } = req.body;
-  if (!plcConnected) return res.status(500).json({ error: 'Automate déconnecté' });
+  // 🔐 SÉCURITÉ : Seul l'admin peut écrire
+  if (req.session.role !== 'admin') {
+    return res.status(403).json({ error: "Droits insuffisants (Admin requis)" });
+  }
 
+  const { variable, value } = req.body;
   let buffer;
+
   if (variable === 'Bouton1') {
     buffer = Buffer.alloc(1);
     buffer[0] = value ? 0x01 : 0x00;
@@ -158,13 +144,10 @@ app.post('/api/write', isAuthenticated, (req, res) => {
   }
 });
 
-// Démarrage
+// --- 7. LANCEMENT ---
 connectPLC();
-
 app.listen(3000, '0.0.0.0', () => {
-  console.log('---------------------------------------------');
-  console.log('SERVEUR SUPERVISION DISPONIBLE');
-  console.log('PC local   : http://localhost:3000');
-  console.log('Téléphone  : http://172.20.10.3:3000');
-  console.log('---------------------------------------------');
+  console.log('🚀 Serveur Supervision S7 prêt !');
+  console.log('Accès local    : http://localhost:3000');
+  console.log('Accès réseau   : http://' + plcConfig.host + ':3000');
 });

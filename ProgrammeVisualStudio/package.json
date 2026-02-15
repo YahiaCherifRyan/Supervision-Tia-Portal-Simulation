@@ -7,8 +7,9 @@
     "start": "node serveur.js"
   },
   "dependencies": {
-    "express": "^4.17.1",
+    "express": "^4.22.1",
     "express-session": "^1.19.0",
+    "mysql2": "^3.17.1",
     "node-snap7": "^1.0.9"
   }
 }

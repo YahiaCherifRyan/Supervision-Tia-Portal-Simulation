@@ -3,233 +3,226 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supervision S7-300</title>
+  <title>Supervision Industrielle S7-300</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f5f5f5;
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #f0f2f5; color: #333; }
+    
+    /* Barre d'entête */
+    .header { 
+      background: #004a99; 
+      color: white; 
+      padding: 15px 20px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
     }
-    .header {
-      background: #007bff;
-      color: white;
-      padding: 15px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .header h2 { margin: 0; font-size: 1.2rem; }
+    .user-profile { text-align: right; }
+    .role-tag { 
+      font-size: 0.7rem; 
+      background: rgba(255,255,255,0.2); 
+      padding: 2px 8px; 
+      border-radius: 10px; 
+      text-transform: uppercase; 
     }
-    .header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    .username {
-      font-weight: bold;
-    }
-    .logout-btn {
-      padding: 8px 16px;
-      background: #dc3545;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .logout-btn:hover {
-      background: #c82333;
-    }
-    .container {
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .control {
-      margin: 20px 0;
-      padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 10px;
-      color: #555;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background: #007bff;
-      color: white;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    input[type="number"] {
-      padding: 10px;
-      font-size: 16px;
-      width: 100%;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      box-sizing: border-box;
-    }
-    button.on {
-      background: #28a745;
-    }
-    button.off {
-      background: #dc3545;
-    }
-    button.on:hover {
-      background: #218838;
-    }
-    button.off:hover {
-      background: #c82333;
-    }
-    .status {
-      margin-top: 10px;
-      padding: 10px;
-      background: #e9ecef;
-      border-radius: 5px;
+
+    .container { max-width: 500px; margin: 20px auto; padding: 15px; }
+
+    /* Alerte pour les opérateurs */
+    .alert-read-only { 
+      background: #fff3cd; 
+      color: #856404; 
+      padding: 12px; 
+      border-radius: 8px; 
+      margin-bottom: 20px; 
+      border: 1px solid #ffeeba;
+      display: none;
       text-align: center;
       font-weight: bold;
+    }
+
+    /* Cartes de contrôle */
+    .card { 
+      background: white; 
+      padding: 20px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+      margin-bottom: 20px; 
+      text-align: center;
+    }
+    .card label { display: block; margin-bottom: 15px; font-weight: bold; color: #666; }
+
+    /* Le Voyant LED */
+    .led-box { margin: 20px 0; }
+    .led { 
+      width: 60px; 
+      height: 60px; 
+      background-color: #b0b0b0; /* Gris par défaut */
+      border-radius: 50%; 
+      margin: 0 auto; 
+      border: 4px solid #333;
+      transition: all 0.3s ease;
+    }
+    .led.active { 
+      background-color: #2ecc71; /* Vert */
+      box-shadow: 0 0 20px #2ecc71; 
+    }
+    #status-text { margin-top: 10px; font-weight: bold; font-size: 1.1rem; }
+
+    /* Affichage Valeur Numérique */
+    .value-display { font-size: 3rem; font-weight: bold; color: #004a99; margin: 10px 0; }
+
+    /* Boutons et Inputs */
+    .admin-controls { 
+      margin-top: 20px; 
+      padding-top: 15px; 
+      border-top: 1px dashed #eee; 
+    }
+    button { 
+      padding: 12px 20px; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: opacity 0.2s;
+    }
+    .btn-on { background: #2ecc71; color: white; }
+    .btn-off { background: #95a5a6; color: white; }
+    .btn-send { background: #004a99; color: white; width: 100%; margin-top: 10px; }
+    input[type="number"] { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+      box-sizing: border-box; 
+      font-size: 1rem;
+      text-align: center;
+    }
+    .logout-link { 
+      display: block; 
+      text-align: center; 
+      margin-top: 30px; 
+      color: #e74c3c; 
+      text-decoration: none; 
+      font-weight: bold; 
     }
   </style>
 </head>
 <body>
+
   <div class="header">
-    <h1>Supervision S7-300</h1>
-    <div class="user-info">
-      <span class="username" id="username">--</span>
-      <button class="logout-btn" onclick="logout()">Déconnexion</button>
+    <h2>S7-300 SUPERVISION</h2>
+    <div class="user-profile">
+      <span id="display-username">Chargement...</span> <br>
+      <span id="display-role" class="role-tag">--</span>
     </div>
   </div>
 
   <div class="container">
-    <div class="control">
-      <label>Bouton1 (Bool - DB1.DBX0.0)</label>
-      <button class="on" onclick="setBouton(true)">ON</button>
-      <button class="off" onclick="setBouton(false)">OFF</button>
-      <div class="status" id="statusBouton">État : --</div>
+    <div id="msg-operateur" class="alert-read-only">
+      MODE LECTURE SEULE
     </div>
 
-    <div class="control">
-      <label>Nombre1 (Int - DB1.DBW2)</label>
-      <input type="number" id="nombre" placeholder="Entrez une valeur">
-      <button onclick="setNombre()">Envoyer</button>
-      <div class="status" id="statusNombre">Valeur : --</div>
+    <div class="card">
+      <label>ÉTAT DE LA MACHINE (DB1.DBX0.0)</label>
+      <div class="led-box">
+        <div id="led-indicator" class="led"></div>
+        <div id="status-text">HORS LIGNE</div>
+      </div>
+      
+      <div class="admin-controls section-admin">
+        <button class="btn-on" onclick="sendAction('Bouton1', true)">DÉMARRER</button>
+        <button class="btn-off" onclick="sendAction('Bouton1', false)">ARRÊTER</button>
+      </div>
     </div>
+
+    <div class="card">
+      <label>VALEUR ANALOGIQUE (DB1.DBW2)</label>
+      <div class="value-display" id="display-nombre">0</div>
+      
+      <div class="admin-controls section-admin">
+        <input type="number" id="input-nombre" placeholder="Nouvelle valeur...">
+        <button class="btn-send" onclick="sendValue()">ENVOYER CONSIGNE</button>
+      </div>
+    </div>
+
+    <a href="#" class="logout-link" onclick="handleLogout()">Déconnexion sécurisée</a>
   </div>
 
   <script>
-    // Vérifier l'authentification au démarrage
-    async function checkAuth() {
+    // 1. Vérification de l'utilisateur et du rôle
+    async function initApp() {
       try {
-        const res = await fetch('/api/user');
-        if (!res.ok) {
-          window.location.href = '/login';
-          return;
+        const response = await fetch('/api/user');
+        if (!response.ok) { window.location.href = '/login'; return; }
+        
+        const user = await response.json();
+        document.getElementById('display-username').textContent = user.username;
+        document.getElementById('display-role').textContent = user.role;
+
+        // Si l'utilisateur est un opérateur, on cache les contrôles
+        if (user.role === 'operateur') {
+          document.querySelectorAll('.section-admin').forEach(div => div.style.display = 'none');
+          document.getElementById('msg-operateur').style.display = 'block';
         }
-        const user = await res.json();
-        document.getElementById('username').textContent = user.username;
-      } catch (err) {
+      } catch (e) {
         window.location.href = '/login';
       }
     }
 
-    // Fonction de déconnexion
-    async function logout() {
+    // 2. Lecture en temps réel (Polling)
+    function updateData() {
+      // Lecture Bouton
+      fetch('/api/read/Bouton1')
+        .then(res => res.json())
+        .then(data => {
+          const led = document.getElementById('led-indicator');
+          const txt = document.getElementById('status-text');
+          if (data.value) {
+            led.classList.add('active');
+            txt.innerText = "EN SERVICE";
+            txt.style.color = "#2ecc71";
+          } else {
+            led.classList.remove('active');
+            txt.innerText = "À L'ARRÊT";
+            txt.style.color = "#95a5a6";
+          }
+        });
+
+      // Lecture Nombre
+      fetch('/api/read/Nombre1')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('display-nombre').innerText = data.value;
+        });
+    }
+
+    // 3. Actions d'écriture (Admin uniquement)
+    function sendAction(variable, val) {
+      fetch('/api/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variable: variable, value: val })
+      })
+      .then(res => res.json())
+      .then(data => { if(data.error) alert(data.error); });
+    }
+
+    function sendValue() {
+      const val = parseInt(document.getElementById('input-nombre').value);
+      if (isNaN(val)) return alert("Veuillez saisir un nombre valide");
+      sendAction('Nombre1', val);
+    }
+
+    async function handleLogout() {
       await fetch('/api/logout');
       window.location.href = '/login';
     }
 
-    // Fonction pour lire les variables
-    function readVariables() {
-      fetch('/api/read/Bouton1')
-        .then(res => {
-          if (res.status === 401) window.location.href = '/login';
-          return res.json();
-        })
-        .then(data => {
-          if(data.error) throw data.error;
-          const etat = data.value ? 'ON' : 'OFF';
-          document.getElementById('statusBouton').innerText = 'État : ' + etat;
-        })
-        .catch(err => console.error('Erreur lecture Bouton1:', err));
-
-      fetch('/api/read/Nombre1')
-        .then(res => {
-          if (res.status === 401) window.location.href = '/login';
-          return res.json();
-        })
-        .then(data => {
-          if(data.error) throw data.error;
-          document.getElementById('statusNombre').innerText = 'Valeur : ' + data.value;
-        })
-        .catch(err => console.error('Erreur lecture Nombre1:', err));
-    }
-
-    // Fonction pour allumer/éteindre Bouton1
-    function setBouton(value) {
-      fetch('/api/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variable: 'Bouton1', value: value })
-      })
-      .then(res => {
-        if (res.status === 401) window.location.href = '/login';
-        return res.json();
-      })
-      .then(data => {
-        if(data.error) throw data.error;
-        console.log('Succès update Bouton1');
-        readVariables();
-      })
-      .catch(err => alert('Erreur automate : ' + err));
-    }
-
-    // Fonction pour envoyer un nombre
-    function setNombre() {
-      const value = parseInt(document.getElementById('nombre').value);
-      if (isNaN(value)) {
-        alert('Entrez un nombre valide');
-        return;
-      }
-      fetch('/api/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variable: 'Nombre1', value: value })
-      })
-      .then(res => {
-        if (res.status === 401) window.location.href = '/login';
-        return res.json();
-      })
-      .then(data => {
-        if(data.error) throw data.error;
-        console.log('Succès update Nombre1');
-        readVariables();
-      })
-      .catch(err => alert('Erreur automate : ' + err));
-    }
-
-    // Vérifier l'auth au démarrage
-    checkAuth();
-
-    // Lire les valeurs au démarrage
-    readVariables();
-
-    // Rafraîchir toutes les 2 secondes
-    setInterval(readVariables, 2000);
+    // Initialisation
+    initApp();
+    setInterval(updateData, 1000); // Mise à jour toutes les secondes
   </script>
 </body>
 </html>
