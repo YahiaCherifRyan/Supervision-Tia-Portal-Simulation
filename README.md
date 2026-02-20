@@ -76,6 +76,9 @@ Node.js Server
 
 ---
 
+<img width="1232" height="533" alt="image" src="https://github.com/user-attachments/assets/f9ed654f-58bd-46e0-9f5b-b08a713cb936" />
+
+
 **Auteur** : Ryan  
 **Date** : Février 2026  
 **Version** : 1.3
