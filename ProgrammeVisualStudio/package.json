@@ -1,15 +1,17 @@
 {
   "name": "supervision-s7",
-  "version": "1.0.0",
-  "description": "Supervision S7-300 via Node.js",
-  "main": "serveur.js",
+  "version": "2.0.0",
+  "description": "Supervision S7-300 + Arduino via Node.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node serveur.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.22.1",
     "express-session": "^1.19.0",
     "mysql2": "^3.17.1",
-    "node-snap7": "^1.0.9"
+    "node-snap7": "^1.0.9",
+    "serialport": "^12.0.0",
+    "@serialport/parser-readline": "^12.0.0"
   }
 }

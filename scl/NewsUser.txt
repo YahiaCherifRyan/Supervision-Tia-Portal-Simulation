@@ -1,0 +1,2 @@
+INSERT INTO users (username, password, role) VALUES
+('tonnom', SHA2('tonmotdepasse', 256), 'admin');
